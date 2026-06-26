@@ -256,6 +256,9 @@ function renderCard(card) {
   }
 
   renderCard(data);
+
+  // زيادة عداد الزيارات (بدون انتظار، لا يؤثر على سرعة العرض)
+  supabaseClient.rpc('increment_card_views', { card_slug: slug });
 })();
 </script>
 </body>
