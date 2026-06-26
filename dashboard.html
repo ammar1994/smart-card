@@ -163,6 +163,34 @@
   .modal-msg.success { color: #5dd879; }
 
   .loading { text-align: center; color: #888; padding: 30px; }
+
+  /* Avatar upload */
+  .avatar-upload-box {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 8px;
+  }
+  .avatar-preview {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: #111;
+    border: 1px solid #333;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+  .avatar-upload-btn {
+    background: #2a2a2a;
+    border: 1px solid #444;
+    color: #ccc;
+    padding: 9px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .avatar-upload-btn:hover { border-color: #d4af37; color: #d4af37; }
+  .upload-status { font-size: 11px; color: #888; margin-top: 6px; }
 </style>
 </head>
 <body>
@@ -205,8 +233,14 @@
       <label>الموقع / المدينة</label>
       <input type="text" id="location">
 
-      <label>رابط الصورة الشخصية</label>
-      <input type="text" id="avatar_url" placeholder="https://...">
+      <label>الصورة الشخصية</label>
+      <div class="avatar-upload-box">
+        <img id="avatarPreview" class="avatar-preview" src="" alt="">
+        <button type="button" class="avatar-upload-btn" id="uploadBtn">اختر صورة من الجهاز</button>
+        <input type="file" id="avatarFile" accept="image/*" style="display:none">
+      </div>
+      <div class="upload-status" id="uploadStatus"></div>
+      <input type="hidden" id="avatar_url">
 
       <label>رابط فيسبوك</label>
       <input type="text" id="facebook_url" placeholder="https://facebook.com/...">
@@ -242,6 +276,10 @@ const overlay = document.getElementById('overlay');
 const cardForm = document.getElementById('cardForm');
 const modalTitle = document.getElementById('modalTitle');
 const modalMsg = document.getElementById('modalMsg');
+const avatarPreview = document.getElementById('avatarPreview');
+const avatarFile = document.getElementById('avatarFile');
+const avatarUrlInput = document.getElementById('avatar_url');
+const uploadStatus = document.getElementById('uploadStatus');
 
 // ===== تحقق من تسجيل الدخول =====
 (async () => {
@@ -258,6 +296,45 @@ const modalMsg = document.getElementById('modalMsg');
 document.getElementById('logoutBtn').addEventListener('click', async () => {
   await supabaseClient.auth.signOut();
   window.location.href = 'login.html';
+});
+
+// ===== رفع الصورة من الجهاز =====
+document.getElementById('uploadBtn').addEventListener('click', () => avatarFile.click());
+
+avatarFile.addEventListener('change', async () => {
+  const file = avatarFile.files[0];
+  if (!file) return;
+
+  if (file.size > 5 * 1024 * 1024) {
+    uploadStatus.textContent = 'الصورة كبيرة جدًا (الحد الأقصى 5 ميجا)';
+    uploadStatus.style.color = '#ff5555';
+    return;
+  }
+
+  uploadStatus.textContent = 'جاري رفع الصورة...';
+  uploadStatus.style.color = '#888';
+
+  const ext = file.name.split('.').pop();
+  const fileName = `${currentUser.id}/${Date.now()}.${ext}`;
+
+  const { error: uploadError } = await supabaseClient.storage
+    .from('avatars')
+    .upload(fileName, file, { upsert: true });
+
+  if (uploadError) {
+    uploadStatus.textContent = 'خطأ في الرفع: ' + uploadError.message;
+    uploadStatus.style.color = '#ff5555';
+    return;
+  }
+
+  const { data: urlData } = supabaseClient.storage
+    .from('avatars')
+    .getPublicUrl(fileName);
+
+  avatarUrlInput.value = urlData.publicUrl;
+  avatarPreview.src = urlData.publicUrl;
+  uploadStatus.textContent = 'تم رفع الصورة بنجاح ✓';
+  uploadStatus.style.color = '#5dd879';
 });
 
 // ===== تحميل بطاقات المستخدم =====
@@ -307,11 +384,20 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+function resetAvatarUpload() {
+  avatarFile.value = '';
+  avatarUrlInput.value = '';
+  avatarPreview.src = '';
+  avatarPreview.style.display = 'none';
+  uploadStatus.textContent = '';
+}
+
 // ===== فتح المودال لإضافة بطاقة جديدة =====
 document.getElementById('addCardBtn').addEventListener('click', () => {
   cardForm.reset();
   document.getElementById('cardId').value = '';
   document.getElementById('theme_color').value = '#d4af37';
+  resetAvatarUpload();
   modalTitle.textContent = 'إضافة بطاقة جديدة';
   modalMsg.textContent = '';
   modalMsg.className = 'modal-msg';
@@ -331,12 +417,20 @@ window.editCard = function(id) {
   document.getElementById('whatsapp').value = card.whatsapp || '';
   document.getElementById('email').value = card.email || '';
   document.getElementById('location').value = card.location || '';
-  document.getElementById('avatar_url').value = card.avatar_url || '';
   document.getElementById('facebook_url').value = card.facebook_url || '';
   document.getElementById('instagram_url').value = card.instagram_url || '';
   document.getElementById('linkedin_url').value = card.linkedin_url || '';
   document.getElementById('twitter_url').value = card.twitter_url || '';
   document.getElementById('theme_color').value = card.theme_color || '#d4af37';
+
+  avatarUrlInput.value = card.avatar_url || '';
+  if (card.avatar_url) {
+    avatarPreview.src = card.avatar_url;
+    avatarPreview.style.display = 'block';
+  } else {
+    avatarPreview.style.display = 'none';
+  }
+  uploadStatus.textContent = '';
 
   modalTitle.textContent = 'تعديل البطاقة';
   modalMsg.textContent = '';
@@ -370,7 +464,7 @@ cardForm.addEventListener('submit', async (e) => {
     whatsapp: document.getElementById('whatsapp').value.trim(),
     email: document.getElementById('email').value.trim(),
     location: document.getElementById('location').value.trim(),
-    avatar_url: document.getElementById('avatar_url').value.trim(),
+    avatar_url: avatarUrlInput.value.trim(),
     facebook_url: document.getElementById('facebook_url').value.trim(),
     instagram_url: document.getElementById('instagram_url').value.trim(),
     linkedin_url: document.getElementById('linkedin_url').value.trim(),
