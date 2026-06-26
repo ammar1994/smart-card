@@ -80,10 +80,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 20px;
     text-decoration: none;
   }
   .social a:hover { border-color: var(--theme, #d4af37); }
+  .social img { width: 22px; height: 22px; }
   .state-box {
     color: #888;
     text-align: center;
@@ -114,6 +114,15 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+// أيقونات حقيقية (SVG) من مكتبة Simple Icons عبر CDN
+const SOCIAL_ICONS = {
+  facebook:  'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/facebook.svg',
+  instagram: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/instagram.svg',
+  linkedin:  'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/linkedin.svg',
+  twitter:   'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/x.svg',
+  whatsapp:  'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/whatsapp.svg',
+};
+
 function renderCard(card) {
   const theme = card.theme_color || '#d4af37';
 
@@ -135,7 +144,8 @@ function renderCard(card) {
   if (card.whatsapp) {
     const wa = card.whatsapp.replace(/[^0-9+]/g, '');
     html += `<a class="info-item" href="https://wa.me/${escapeHtml(wa.replace('+',''))}" target="_blank">
-      <span class="info-icon">💬</span><span class="info-text">واتساب: ${escapeHtml(card.whatsapp)}</span>
+      <img class="info-icon" style="width:20px;height:20px;filter:invert(1);" src="${SOCIAL_ICONS.whatsapp}" alt="">
+      <span class="info-text">واتساب: ${escapeHtml(card.whatsapp)}</span>
     </a>`;
   }
   if (card.email) {
@@ -149,17 +159,20 @@ function renderCard(card) {
     </a>`;
   }
 
+  // روابط السوشيال ميديا - تظهر فقط لو الرابط مكتوب فعليًا
   const socials = [
-    { url: card.facebook_url, icon: '📘' },
-    { url: card.instagram_url, icon: '📸' },
-    { url: card.linkedin_url, icon: '💼' },
-    { url: card.twitter_url, icon: '🐦' },
-  ].filter(s => s.url);
+    { url: card.facebook_url,  icon: SOCIAL_ICONS.facebook },
+    { url: card.instagram_url, icon: SOCIAL_ICONS.instagram },
+    { url: card.linkedin_url,  icon: SOCIAL_ICONS.linkedin },
+    { url: card.twitter_url,   icon: SOCIAL_ICONS.twitter },
+  ].filter(s => s.url && s.url.trim() !== '');
 
   if (socials.length) {
     html += `<div class="social">`;
     socials.forEach(s => {
-      html += `<a href="${escapeHtml(s.url)}" target="_blank">${s.icon}</a>`;
+      html += `<a href="${escapeHtml(s.url)}" target="_blank">
+        <img src="${s.icon}" alt="" style="filter:invert(1);">
+      </a>`;
     });
     html += `</div>`;
   }
