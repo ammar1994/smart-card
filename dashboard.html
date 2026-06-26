@@ -80,7 +80,7 @@
   }
   .card-actions button, .card-actions a {
     flex: 1;
-    min-width: 80px;
+    min-width: 70px;
     text-align: center;
     background: #111;
     border: 1px solid #333;
@@ -220,6 +220,24 @@
   .template-swatch.gradient { background: linear-gradient(135deg, #6a11cb, #2575fc); }
   .template-swatch.minimal { background: #fff; border: 1px solid #eee; }
   .template-label { font-size: 10px; color: #aaa; }
+
+  /* QR Modal */
+  .qr-modal .modal { text-align: center; max-width: 320px; }
+  .qr-modal img { width: 220px; height: 220px; margin: 15px auto; display: block; background: #fff; border-radius: 10px; padding: 10px; }
+  .qr-link { font-size: 12px; color: #888; word-break: break-all; margin-bottom: 15px; }
+  .qr-actions { display: flex; gap: 10px; }
+  .qr-actions a, .qr-actions button {
+    flex: 1;
+    padding: 11px;
+    border-radius: 8px;
+    font-size: 13px;
+    text-decoration: none;
+    text-align: center;
+    border: none;
+    cursor: pointer;
+  }
+  .qr-download { background: #d4af37; color: #000; font-weight: bold; }
+  .qr-close { background: #2a2a2a; color: #ccc; }
 </style>
 </head>
 <body>
@@ -316,6 +334,19 @@
   </div>
 </div>
 
+<!-- Modal لعرض QR Code -->
+<div class="overlay qr-modal" id="qrOverlay">
+  <div class="modal">
+    <h2>رمز QR للبطاقة</h2>
+    <img id="qrImage" src="" alt="QR Code">
+    <div class="qr-link" id="qrLink"></div>
+    <div class="qr-actions">
+      <a id="qrDownload" class="qr-download" download="qr-code.png">تحميل</a>
+      <button class="qr-close" id="qrCloseBtn">إغلاق</button>
+    </div>
+  </div>
+</div>
+
 <script src="supabase-config.js"></script>
 <script>
 let currentUser = null;
@@ -332,6 +363,10 @@ const avatarUrlInput = document.getElementById('avatar_url');
 const uploadStatus = document.getElementById('uploadStatus');
 const templateGrid = document.getElementById('templateGrid');
 const templateInput = document.getElementById('template');
+const qrOverlay = document.getElementById('qrOverlay');
+const qrImage = document.getElementById('qrImage');
+const qrLink = document.getElementById('qrLink');
+const qrDownload = document.getElementById('qrDownload');
 
 // ===== اختيار القالب =====
 function selectTemplate(name) {
@@ -435,6 +470,7 @@ async function loadCards() {
       </div>
       <div class="card-actions">
         <a href="card.html?slug=${encodeURIComponent(card.slug)}" target="_blank">معاينة</a>
+        <button onclick="showQr('${card.slug}')">QR</button>
         <button onclick="editCard('${card.id}')">تعديل</button>
         <button onclick="toggleActive('${card.id}', ${card.is_active})">${card.is_active ? 'إيقاف' : 'تفعيل'}</button>
         <button class="danger" onclick="deleteCard('${card.id}')">حذف</button>
@@ -456,6 +492,25 @@ function resetAvatarUpload() {
   avatarPreview.style.display = 'none';
   uploadStatus.textContent = '';
 }
+
+// ===== عرض QR Code =====
+window.showQr = function(slug) {
+  const cardUrl = `${window.location.origin}/u/${encodeURIComponent(slug)}`;
+  const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(cardUrl)}`;
+
+  qrImage.src = qrApiUrl;
+  qrLink.textContent = cardUrl;
+  qrDownload.href = qrApiUrl;
+  qrDownload.setAttribute('download', `qr-${slug}.png`);
+  qrOverlay.classList.add('show');
+};
+
+document.getElementById('qrCloseBtn').addEventListener('click', () => {
+  qrOverlay.classList.remove('show');
+});
+qrOverlay.addEventListener('click', (e) => {
+  if (e.target === qrOverlay) qrOverlay.classList.remove('show');
+});
 
 // ===== فتح المودال لإضافة بطاقة جديدة =====
 document.getElementById('addCardBtn').addEventListener('click', () => {
