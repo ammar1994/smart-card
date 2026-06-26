@@ -63,6 +63,34 @@
   .social img { width: 22px; height: 22px; }
   .state-box { color: #888; text-align: center; font-size: 14px; }
 
+  /* ===== زر حفظ جهة الاتصال ===== */
+  .save-contact-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    margin-top: 20px;
+    padding: 13px 15px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    background: var(--theme, #d4af37);
+    color: #000;
+    transition: opacity .2s, transform .15s;
+  }
+  .save-contact-btn:hover { opacity: .88; transform: translateY(-1px); }
+  .save-contact-btn:active { transform: translateY(0); }
+  .save-contact-btn svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+  /* تكيّف مع كل قالب */
+  .tpl-light .save-contact-btn  { color: #000; }
+  .tpl-gradient .save-contact-btn { background: rgba(255,255,255,0.2); color: #fff; border: 1px solid rgba(255,255,255,0.3); }
+  .tpl-minimal .save-contact-btn  { border: 1px solid var(--theme, #d4af37); background: transparent; color: #111; }
+
   /* ===== قالب: كلاسيك (الأصلي) ===== */
   .tpl-classic .card {
     background: linear-gradient(145deg, #1a1a1a, #2a2a2a);
@@ -230,8 +258,51 @@ function renderCard(card) {
     html += `</div>`;
   }
 
+  // ===== زر حفظ جهة الاتصال =====
+  html += `
+  <button class="save-contact-btn" onclick="saveContact()" style="--theme:${escapeHtml(theme)}">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+      <circle cx="12" cy="7" r="4"/>
+    </svg>
+    احفظ جهة الاتصال
+  </button>`;
+
   html += `</div>`;
   document.getElementById('content').outerHTML = html;
+
+  // حفظ بيانات البطاقة للاستخدام في دالة الحفظ
+  window._cardData = card;
+}
+
+function saveContact() {
+  const c = window._cardData || {};
+
+  const lines = ['BEGIN:VCARD', 'VERSION:3.0'];
+  if (c.full_name) lines.push(`FN:${c.full_name}`);
+  if (c.job_title) lines.push(`TITLE:${c.job_title}`);
+  if (c.phone)     lines.push(`TEL;TYPE=CELL:${c.phone}`);
+  if (c.whatsapp && c.whatsapp !== c.phone)
+                   lines.push(`TEL;TYPE=WORK:${c.whatsapp}`);
+  if (c.email)     lines.push(`EMAIL:${c.email}`);
+  if (c.location)  lines.push(`ADR;TYPE=WORK:;;${c.location};;;;`);
+  if (c.facebook_url)  lines.push(`URL;TYPE=Facebook:${c.facebook_url}`);
+  if (c.instagram_url) lines.push(`URL;TYPE=Instagram:${c.instagram_url}`);
+  if (c.linkedin_url)  lines.push(`URL;TYPE=LinkedIn:${c.linkedin_url}`);
+  if (c.twitter_url)   lines.push(`URL;TYPE=Twitter:${c.twitter_url}`);
+  lines.push(`URL;TYPE=SmartCard:${window.location.href}`);
+  lines.push('END:VCARD');
+
+  const vcf  = lines.join('\r\n');
+  const blob = new Blob([vcf], { type: 'text/vcard;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `${c.full_name || 'contact'}.vcf`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 (async () => {
