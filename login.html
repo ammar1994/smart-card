@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>تسجيل الدخول - البطاقة الذكية</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #0a0a0a;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .box {
+    background: linear-gradient(145deg, #1a1a1a, #2a2a2a);
+    border: 1px solid #d4af37;
+    border-radius: 20px;
+    padding: 40px 30px;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 0 30px rgba(212,175,55,0.2);
+  }
+  h1 {
+    color: #d4af37;
+    font-size: 22px;
+    text-align: center;
+    margin-bottom: 25px;
+  }
+  label {
+    color: #ccc;
+    font-size: 13px;
+    display: block;
+    margin-bottom: 6px;
+  }
+  input {
+    width: 100%;
+    background: #111;
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 12px 15px;
+    color: #fff;
+    font-size: 14px;
+    margin-bottom: 16px;
+    outline: none;
+  }
+  input:focus { border-color: #d4af37; }
+  button {
+    width: 100%;
+    background: #d4af37;
+    color: #000;
+    border: none;
+    border-radius: 10px;
+    padding: 13px;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 5px;
+  }
+  button:disabled { opacity: 0.6; cursor: not-allowed; }
+  .msg {
+    text-align: center;
+    font-size: 13px;
+    margin-top: 15px;
+    min-height: 18px;
+  }
+  .msg.error { color: #ff5555; }
+  .msg.success { color: #5dd879; }
+  .switch {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 13px;
+    color: #888;
+  }
+  .switch a { color: #d4af37; text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="box">
+  <h1>تسجيل الدخول</h1>
+  <form id="loginForm">
+    <label>البريد الإلكتروني</label>
+    <input type="email" id="email" required placeholder="example@email.com">
+
+    <label>كلمة المرور</label>
+    <input type="password" id="password" required placeholder="كلمة المرور">
+
+    <button type="submit" id="submitBtn">دخول</button>
+  </form>
+  <div class="msg" id="msg"></div>
+  <div class="switch">ما عندك حساب؟ <a href="signup.html">إنشاء حساب جديد</a></div>
+</div>
+
+<script src="supabase-config.js"></script>
+<script>
+const form = document.getElementById('loginForm');
+const msg = document.getElementById('msg');
+const submitBtn = document.getElementById('submitBtn');
+
+// لو المستخدم مسجل دخول بالفعل، حوّله للداشبورد مباشرة
+(async () => {
+  const { data } = await supabaseClient.auth.getSession();
+  if (data.session) window.location.href = 'dashboard.html';
+})();
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  msg.textContent = '';
+  msg.className = 'msg';
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'جاري الدخول...';
+
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+
+  const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+
+  submitBtn.disabled = false;
+  submitBtn.textContent = 'دخول';
+
+  if (error) {
+    msg.textContent = 'خطأ: ' + error.message;
+    msg.classList.add('error');
+    return;
+  }
+
+  msg.textContent = 'تم الدخول بنجاح! يتم تحويلك...';
+  msg.classList.add('success');
+  setTimeout(() => window.location.href = 'dashboard.html', 800);
+});
+</script>
+</body>
+</html>
