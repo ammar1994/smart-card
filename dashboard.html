@@ -255,6 +255,60 @@
   .slug-status.available { color: #5dd879; }
   .slug-status.taken { color: #ff5555; }
   .slug-status.invalid { color: #f0a500; }
+
+  /* ===== NFC Modal ===== */
+  .nfc-modal .modal { text-align: center; max-width: 360px; }
+  .nfc-icon { font-size: 44px; margin-bottom: 10px; }
+  .nfc-title { color: #d4af37; font-size: 16px; font-weight: bold; margin-bottom: 6px; }
+  .nfc-desc { color: #888; font-size: 12px; line-height: 1.6; margin-bottom: 18px; }
+  .nfc-url-box {
+    background: #111;
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 12px;
+    color: #ccc;
+    word-break: break-all;
+    text-align: left;
+    direction: ltr;
+    margin-bottom: 12px;
+  }
+  .nfc-copy-btn {
+    width: 100%;
+    background: #d4af37;
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-bottom: 8px;
+    transition: opacity .2s;
+  }
+  .nfc-copy-btn:hover { opacity: .88; }
+  .nfc-copy-msg { font-size: 12px; color: #5dd879; min-height: 18px; margin-bottom: 10px; }
+  .nfc-steps {
+    background: #141414;
+    border: 1px solid #2a2a2a;
+    border-radius: 10px;
+    padding: 14px;
+    text-align: right;
+    margin-bottom: 14px;
+  }
+  .nfc-steps p { font-size: 11px; color: #888; margin-bottom: 4px; font-weight: bold; }
+  .nfc-steps ol { padding-right: 16px; }
+  .nfc-steps li { font-size: 11px; color: #666; margin-bottom: 4px; line-height: 1.5; }
+  .nfc-close-btn {
+    width: 100%;
+    background: #2a2a2a;
+    color: #ccc;
+    border: none;
+    border-radius: 8px;
+    padding: 11px;
+    font-size: 13px;
+    cursor: pointer;
+  }
 </style>
 </head>
 <body>
@@ -368,6 +422,29 @@
   </div>
 </div>
 
+<!-- ===== Modal رابط NFC ===== -->
+<div class="overlay nfc-modal" id="nfcOverlay">
+  <div class="modal">
+    <div class="nfc-icon">📡</div>
+    <div class="nfc-title">رابط كرت NFC</div>
+    <div class="nfc-desc">انسخ هذا الرابط وابرمجه على كرت NFC باستخدام تطبيق NFC Tools</div>
+    <div class="nfc-url-box" id="nfcUrl"></div>
+    <button class="nfc-copy-btn" id="nfcCopyBtn">نسخ الرابط</button>
+    <div class="nfc-copy-msg" id="nfcCopyMsg"></div>
+    <div class="nfc-steps">
+      <p>خطوات برمجة الكرت:</p>
+      <ol>
+        <li>حمّل تطبيق <strong>NFC Tools</strong> من متجر Google Play</li>
+        <li>افتح التطبيق واضغط <strong>Write</strong></li>
+        <li>اضغط <strong>Add a record</strong> ثم اختر <strong>URL</strong></li>
+        <li>الصق الرابط أعلاه واضغط <strong>Write</strong></li>
+        <li>قرّب الكرت من الجوال — تم ✅</li>
+      </ol>
+    </div>
+    <button class="nfc-close-btn" id="nfcCloseBtn">إغلاق</button>
+  </div>
+</div>
+
 <script src="supabase-config.js"></script>
 <script>
 let currentUser = null;
@@ -390,6 +467,10 @@ const qrLink = document.getElementById('qrLink');
 const qrDownload = document.getElementById('qrDownload');
 const slugInput = document.getElementById('slug');
 const slugStatus = document.getElementById('slugStatus');
+const nfcOverlay = document.getElementById('nfcOverlay');
+const nfcUrl = document.getElementById('nfcUrl');
+const nfcCopyBtn = document.getElementById('nfcCopyBtn');
+const nfcCopyMsg = document.getElementById('nfcCopyMsg');
 
 // ===== اختيار القالب =====
 function selectTemplate(name) {
@@ -403,9 +484,9 @@ templateGrid.addEventListener('click', (e) => {
   if (opt) selectTemplate(opt.dataset.template);
 });
 
-// ===== فحص الـ slug فوري مع Debounce =====
+// ===== فحص الـ slug =====
 let slugTimer = null;
-let slugValid = true; // حالة الـ slug لمنع الحفظ لو محجوز
+let slugValid = true;
 
 slugInput.addEventListener('input', () => {
   clearTimeout(slugTimer);
@@ -418,7 +499,6 @@ slugInput.addEventListener('input', () => {
     return;
   }
 
-  // تحقق من الصيغة أولاً
   if (!/^[a-z0-9\-]+$/.test(val)) {
     slugStatus.textContent = '⚠️ استخدم أحرف إنجليزية صغيرة وأرقام وشرطة (-) فقط';
     slugStatus.className = 'slug-status invalid';
@@ -441,14 +521,12 @@ async function checkSlugAvailability(val) {
     .select('id')
     .eq('slug', val);
 
-  // عند التعديل: تجاهل البطاقة الحالية
   if (currentId) {
     query = query.neq('id', currentId);
   }
 
   const { data, error } = await query.maybeSingle();
 
-  // تحقق إن المستخدم لم يغير القيمة أثناء الانتظار
   if (slugInput.value.trim().toLowerCase() !== val) return;
 
   if (error) {
@@ -486,7 +564,7 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
   window.location.href = 'login.html';
 });
 
-// ===== تصغير/ضغط الصورة قبل الرفع (لتسريع تحميل البطاقة عند الزوار) =====
+// ===== ضغط الصورة =====
 function resizeImage(file, maxSize = 500, quality = 0.85) {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -522,7 +600,7 @@ function resizeImage(file, maxSize = 500, quality = 0.85) {
   });
 }
 
-// ===== رفع الصورة من الجهاز =====
+// ===== رفع الصورة =====
 document.getElementById('uploadBtn').addEventListener('click', () => avatarFile.click());
 
 avatarFile.addEventListener('change', async () => {
@@ -572,7 +650,7 @@ avatarFile.addEventListener('change', async () => {
   uploadStatus.style.color = '#5dd879';
 });
 
-// ===== تحميل بطاقات المستخدم =====
+// ===== تحميل البطاقات =====
 async function loadCards() {
   cardsList.innerHTML = '<div class="loading">جاري التحميل...</div>';
 
@@ -606,6 +684,7 @@ async function loadCards() {
       <div class="card-actions">
         <a href="card.html?slug=${encodeURIComponent(card.slug)}" target="_blank">معاينة</a>
         <button onclick="showQr('${card.slug}')">QR</button>
+        <button onclick="showNfc('${card.slug}')">NFC 📡</button>
         <button onclick="editCard('${card.id}')">تعديل</button>
         <button onclick="toggleActive('${card.id}', ${card.is_active})">${card.is_active ? 'إيقاف' : 'تفعيل'}</button>
         <button class="danger" onclick="deleteCard('${card.id}')">حذف</button>
@@ -635,7 +714,7 @@ function resetSlugStatus() {
   slugValid = true;
 }
 
-// ===== عرض QR Code =====
+// ===== QR Code =====
 window.showQr = function(slug) {
   const cardUrl = `${window.location.origin}/u/${encodeURIComponent(slug)}`;
   const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(cardUrl)}`;
@@ -654,7 +733,42 @@ qrOverlay.addEventListener('click', (e) => {
   if (e.target === qrOverlay) qrOverlay.classList.remove('show');
 });
 
-// ===== فتح المودال لإضافة بطاقة جديدة =====
+// ===== NFC Modal =====
+window.showNfc = function(slug) {
+  const cardUrl = `${window.location.origin}/card.html?slug=${encodeURIComponent(slug)}`;
+  nfcUrl.textContent = cardUrl;
+  nfcCopyMsg.textContent = '';
+  nfcOverlay.classList.add('show');
+};
+
+nfcCopyBtn.addEventListener('click', () => {
+  const url = nfcUrl.textContent;
+  navigator.clipboard.writeText(url).then(() => {
+    nfcCopyMsg.textContent = '✅ تم نسخ الرابط!';
+    setTimeout(() => { nfcCopyMsg.textContent = ''; }, 2500);
+  }).catch(() => {
+    // fallback للأجهزة القديمة
+    const ta = document.createElement('textarea');
+    ta.value = url;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    nfcCopyMsg.textContent = '✅ تم نسخ الرابط!';
+    setTimeout(() => { nfcCopyMsg.textContent = ''; }, 2500);
+  });
+});
+
+document.getElementById('nfcCloseBtn').addEventListener('click', () => {
+  nfcOverlay.classList.remove('show');
+});
+nfcOverlay.addEventListener('click', (e) => {
+  if (e.target === nfcOverlay) nfcOverlay.classList.remove('show');
+});
+
+// ===== فتح المودال - إضافة =====
 document.getElementById('addCardBtn').addEventListener('click', () => {
   cardForm.reset();
   document.getElementById('cardId').value = '';
@@ -668,7 +782,7 @@ document.getElementById('addCardBtn').addEventListener('click', () => {
   overlay.classList.add('show');
 });
 
-// ===== فتح المودال لتعديل بطاقة موجودة =====
+// ===== فتح المودال - تعديل =====
 window.editCard = function(id) {
   const card = allCards.find(c => c.id === id);
   if (!card) return;
@@ -697,7 +811,6 @@ window.editCard = function(id) {
   }
   uploadStatus.textContent = '';
 
-  // عند التعديل: الـ slug الحالي متاح بطبيعة الحال
   resetSlugStatus();
   slugStatus.textContent = '✅ الرابط الحالي';
   slugStatus.className = 'slug-status available';
@@ -708,7 +821,7 @@ window.editCard = function(id) {
   overlay.classList.add('show');
 };
 
-// ===== إلغاء / إغلاق المودال =====
+// ===== إغلاق المودال =====
 document.getElementById('cancelBtn').addEventListener('click', () => {
   overlay.classList.remove('show');
 });
@@ -716,11 +829,10 @@ overlay.addEventListener('click', (e) => {
   if (e.target === overlay) overlay.classList.remove('show');
 });
 
-// ===== حفظ (إضافة أو تعديل) =====
+// ===== حفظ =====
 cardForm.addEventListener('submit', async (e) => {
   e.preventDefault();
 
-  // منع الحفظ لو الـ slug محجوز
   if (!slugValid) {
     modalMsg.textContent = 'الرابط المختار غير متاح أو يحتوي على أحرف غير صالحة.';
     modalMsg.className = 'modal-msg error';
@@ -780,7 +892,7 @@ cardForm.addEventListener('submit', async (e) => {
   }, 700);
 });
 
-// ===== تفعيل / إيقاف بطاقة =====
+// ===== تفعيل / إيقاف =====
 window.toggleActive = async function(id, currentStatus) {
   const { error } = await supabaseClient
     .from('cards')
@@ -794,7 +906,7 @@ window.toggleActive = async function(id, currentStatus) {
   loadCards();
 };
 
-// ===== حذف بطاقة =====
+// ===== حذف =====
 window.deleteCard = async function(id) {
   if (!confirm('هل أنت متأكد من حذف هذه البطاقة؟ لا يمكن التراجع عن هذا الإجراء.')) return;
 
