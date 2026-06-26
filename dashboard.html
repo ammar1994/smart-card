@@ -22,7 +22,8 @@
     margin: 0 auto 25px;
   }
   .topbar h1 { color: #d4af37; font-size: 20px; }
-  .logout {
+  .topbar-actions { display: flex; gap: 8px; align-items: center; }
+  .logout, .account-link {
     background: none;
     border: 1px solid #444;
     color: #ccc;
@@ -30,8 +31,10 @@
     border-radius: 8px;
     font-size: 13px;
     cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
   }
-  .logout:hover { border-color: #d4af37; color: #d4af37; }
+  .logout:hover, .account-link:hover { border-color: #d4af37; color: #d4af37; }
 
   .container { max-width: 700px; margin: 0 auto; }
 
@@ -258,7 +261,10 @@
 
 <div class="topbar">
   <h1>بطاقاتي</h1>
-  <button class="logout" id="logoutBtn">تسجيل خروج</button>
+  <div class="topbar-actions">
+    <a class="account-link" href="account.html">الحساب</a>
+    <button class="logout" id="logoutBtn">تسجيل خروج</button>
+  </div>
 </div>
 
 <div class="container">
