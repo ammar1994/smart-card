@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة التحكم - البطاقة الذكية</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #0a0a0a;
+    color: #fff;
+    min-height: 100vh;
+    padding: 20px;
+  }
+  .topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 700px;
+    margin: 0 auto 25px;
+  }
+  .topbar h1 { color: #d4af37; font-size: 20px; }
+  .logout {
+    background: none;
+    border: 1px solid #444;
+    color: #ccc;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .logout:hover { border-color: #d4af37; color: #d4af37; }
+
+  .container { max-width: 700px; margin: 0 auto; }
+
+  .add-btn {
+    width: 100%;
+    background: #d4af37;
+    color: #000;
+    border: none;
+    border-radius: 10px;
+    padding: 14px;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-bottom: 25px;
+  }
+
+  .card-item {
+    background: linear-gradient(145deg, #1a1a1a, #242424);
+    border: 1px solid #333;
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 15px;
+  }
+  .card-item.inactive { opacity: 0.5; }
+  .card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .card-name { font-size: 17px; font-weight: bold; color: #d4af37; }
+  .card-slug { font-size: 12px; color: #888; margin-top: 3px; }
+  .badge {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 20px;
+  }
+  .badge.active { background: #1c3d2a; color: #5dd879; }
+  .badge.inactive { background: #3d1c1c; color: #ff8585; }
+
+  .card-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+  .card-actions button, .card-actions a {
+    flex: 1;
+    min-width: 80px;
+    text-align: center;
+    background: #111;
+    border: 1px solid #333;
+    color: #ccc;
+    padding: 9px;
+    border-radius: 8px;
+    font-size: 12px;
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .card-actions button:hover, .card-actions a:hover { border-color: #d4af37; color: #d4af37; }
+  .card-actions .danger:hover { border-color: #ff5555; color: #ff5555; }
+
+  .empty {
+    text-align: center;
+    color: #666;
+    padding: 40px 20px;
+    font-size: 14px;
+  }
+
+  /* Modal */
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 100;
+  }
+  .overlay.show { display: flex; }
+  .modal {
+    background: #1a1a1a;
+    border: 1px solid #d4af37;
+    border-radius: 16px;
+    padding: 25px 20px;
+    width: 100%;
+    max-width: 450px;
+    max-height: 85vh;
+    overflow-y: auto;
+  }
+  .modal h2 { color: #d4af37; font-size: 18px; margin-bottom: 18px; }
+  .modal label {
+    display: block;
+    color: #aaa;
+    font-size: 12px;
+    margin-bottom: 5px;
+    margin-top: 12px;
+  }
+  .modal input {
+    width: 100%;
+    background: #111;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: #fff;
+    font-size: 14px;
+    outline: none;
+  }
+  .modal input:focus { border-color: #d4af37; }
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 22px;
+  }
+  .modal-actions button {
+    flex: 1;
+    padding: 12px;
+    border-radius: 8px;
+    border: none;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  .save-btn { background: #d4af37; color: #000; }
+  .cancel-btn { background: #2a2a2a; color: #ccc; }
+  .modal-msg { font-size: 13px; margin-top: 12px; text-align: center; min-height: 16px; }
+  .modal-msg.error { color: #ff5555; }
+  .modal-msg.success { color: #5dd879; }
+
+  .loading { text-align: center; color: #888; padding: 30px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>بطاقاتي</h1>
+  <button class="logout" id="logoutBtn">تسجيل خروج</button>
+</div>
+
+<div class="container">
+  <button class="add-btn" id="addCardBtn">+ إضافة بطاقة جديدة</button>
+  <div id="cardsList"><div class="loading">جاري التحميل...</div></div>
+</div>
+
+<!-- Modal لإضافة/تعديل بطاقة -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2 id="modalTitle">إضافة بطاقة جديدة</h2>
+    <form id="cardForm">
+      <input type="hidden" id="cardId">
+
+      <label>رابط البطاقة (بالإنجليزي وبدون مسافات) *</label>
+      <input type="text" id="slug" placeholder="mohamed-ahmed" required pattern="[a-z0-9\-]+">
+
+      <label>الاسم الكامل *</label>
+      <input type="text" id="full_name" required>
+
+      <label>المسمى الوظيفي</label>
+      <input type="text" id="job_title">
+
+      <label>رقم الهاتف</label>
+      <input type="text" id="phone" placeholder="+966500000000">
+
+      <label>واتساب</label>
+      <input type="text" id="whatsapp" placeholder="+966500000000">
+
+      <label>البريد الإلكتروني</label>
+      <input type="email" id="email">
+
+      <label>الموقع / المدينة</label>
+      <input type="text" id="location">
+
+      <label>رابط الصورة الشخصية</label>
+      <input type="text" id="avatar_url" placeholder="https://...">
+
+      <label>رابط فيسبوك</label>
+      <input type="text" id="facebook_url" placeholder="https://facebook.com/...">
+
+      <label>رابط انستقرام</label>
+      <input type="text" id="instagram_url" placeholder="https://instagram.com/...">
+
+      <label>رابط لينكدإن</label>
+      <input type="text" id="linkedin_url" placeholder="https://linkedin.com/in/...">
+
+      <label>رابط تويتر / X</label>
+      <input type="text" id="twitter_url" placeholder="https://x.com/...">
+
+      <label>لون البطاقة</label>
+      <input type="color" id="theme_color" value="#d4af37" style="height:42px; padding:4px; cursor:pointer;">
+
+      <div class="modal-actions">
+        <button type="button" class="cancel-btn" id="cancelBtn">إلغاء</button>
+        <button type="submit" class="save-btn" id="saveBtn">حفظ</button>
+      </div>
+      <div class="modal-msg" id="modalMsg"></div>
+    </form>
+  </div>
+</div>
+
+<script src="supabase-config.js"></script>
+<script>
+let currentUser = null;
+let allCards = [];
+
+const cardsList = document.getElementById('cardsList');
+const overlay = document.getElementById('overlay');
+const cardForm = document.getElementById('cardForm');
+const modalTitle = document.getElementById('modalTitle');
+const modalMsg = document.getElementById('modalMsg');
+
+// ===== تحقق من تسجيل الدخول =====
+(async () => {
+  const { data } = await supabaseClient.auth.getSession();
+  if (!data.session) {
+    window.location.href = 'login.html';
+    return;
+  }
+  currentUser = data.session.user;
+  loadCards();
+})();
+
+// ===== تسجيل الخروج =====
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await supabaseClient.auth.signOut();
+  window.location.href = 'login.html';
+});
+
+// ===== تحميل بطاقات المستخدم =====
+async function loadCards() {
+  cardsList.innerHTML = '<div class="loading">جاري التحميل...</div>';
+
+  const { data, error } = await supabaseClient
+    .from('cards')
+    .select('*')
+    .eq('user_id', currentUser.id)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    cardsList.innerHTML = `<div class="empty">خطأ في تحميل البطاقات: ${error.message}</div>`;
+    return;
+  }
+
+  allCards = data;
+
+  if (data.length === 0) {
+    cardsList.innerHTML = '<div class="empty">لا توجد بطاقات بعد. اضغط "إضافة بطاقة جديدة" لإنشاء أول بطاقة.</div>';
+    return;
+  }
+
+  cardsList.innerHTML = data.map(card => `
+    <div class="card-item ${card.is_active ? '' : 'inactive'}">
+      <div class="card-head">
+        <div>
+          <div class="card-name">${escapeHtml(card.full_name || 'بدون اسم')}</div>
+          <div class="card-slug">/u/${escapeHtml(card.slug)}</div>
+        </div>
+        <span class="badge ${card.is_active ? 'active' : 'inactive'}">${card.is_active ? 'منشورة' : 'متوقفة'}</span>
+      </div>
+      <div class="card-actions">
+        <a href="card.html?slug=${encodeURIComponent(card.slug)}" target="_blank">معاينة</a>
+        <button onclick="editCard('${card.id}')">تعديل</button>
+        <button onclick="toggleActive('${card.id}', ${card.is_active})">${card.is_active ? 'إيقاف' : 'تفعيل'}</button>
+        <button class="danger" onclick="deleteCard('${card.id}')">حذف</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str || '';
+  return div.innerHTML;
+}
+
+// ===== فتح المودال لإضافة بطاقة جديدة =====
+document.getElementById('addCardBtn').addEventListener('click', () => {
+  cardForm.reset();
+  document.getElementById('cardId').value = '';
+  document.getElementById('theme_color').value = '#d4af37';
+  modalTitle.textContent = 'إضافة بطاقة جديدة';
+  modalMsg.textContent = '';
+  modalMsg.className = 'modal-msg';
+  overlay.classList.add('show');
+});
+
+// ===== فتح المودال لتعديل بطاقة موجودة =====
+window.editCard = function(id) {
+  const card = allCards.find(c => c.id === id);
+  if (!card) return;
+
+  document.getElementById('cardId').value = card.id;
+  document.getElementById('slug').value = card.slug || '';
+  document.getElementById('full_name').value = card.full_name || '';
+  document.getElementById('job_title').value = card.job_title || '';
+  document.getElementById('phone').value = card.phone || '';
+  document.getElementById('whatsapp').value = card.whatsapp || '';
+  document.getElementById('email').value = card.email || '';
+  document.getElementById('location').value = card.location || '';
+  document.getElementById('avatar_url').value = card.avatar_url || '';
+  document.getElementById('facebook_url').value = card.facebook_url || '';
+  document.getElementById('instagram_url').value = card.instagram_url || '';
+  document.getElementById('linkedin_url').value = card.linkedin_url || '';
+  document.getElementById('twitter_url').value = card.twitter_url || '';
+  document.getElementById('theme_color').value = card.theme_color || '#d4af37';
+
+  modalTitle.textContent = 'تعديل البطاقة';
+  modalMsg.textContent = '';
+  modalMsg.className = 'modal-msg';
+  overlay.classList.add('show');
+};
+
+// ===== إلغاء / إغلاق المودال =====
+document.getElementById('cancelBtn').addEventListener('click', () => {
+  overlay.classList.remove('show');
+});
+overlay.addEventListener('click', (e) => {
+  if (e.target === overlay) overlay.classList.remove('show');
+});
+
+// ===== حفظ (إضافة أو تعديل) =====
+cardForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const saveBtn = document.getElementById('saveBtn');
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'جاري الحفظ...';
+  modalMsg.textContent = '';
+  modalMsg.className = 'modal-msg';
+
+  const id = document.getElementById('cardId').value;
+  const payload = {
+    slug: document.getElementById('slug').value.trim().toLowerCase().replace(/\s+/g, '-'),
+    full_name: document.getElementById('full_name').value.trim(),
+    job_title: document.getElementById('job_title').value.trim(),
+    phone: document.getElementById('phone').value.trim(),
+    whatsapp: document.getElementById('whatsapp').value.trim(),
+    email: document.getElementById('email').value.trim(),
+    location: document.getElementById('location').value.trim(),
+    avatar_url: document.getElementById('avatar_url').value.trim(),
+    facebook_url: document.getElementById('facebook_url').value.trim(),
+    instagram_url: document.getElementById('instagram_url').value.trim(),
+    linkedin_url: document.getElementById('linkedin_url').value.trim(),
+    twitter_url: document.getElementById('twitter_url').value.trim(),
+    theme_color: document.getElementById('theme_color').value,
+  };
+
+  let result;
+  if (id) {
+    result = await supabaseClient.from('cards').update(payload).eq('id', id);
+  } else {
+    payload.user_id = currentUser.id;
+    result = await supabaseClient.from('cards').insert(payload);
+  }
+
+  saveBtn.disabled = false;
+  saveBtn.textContent = 'حفظ';
+
+  if (result.error) {
+    let friendly = result.error.message;
+    if (friendly.includes('duplicate') || friendly.includes('unique')) {
+      friendly = 'هذا الرابط (slug) مستخدم من قبل. اختر رابطًا آخر.';
+    }
+    modalMsg.textContent = friendly;
+    modalMsg.classList.add('error');
+    return;
+  }
+
+  modalMsg.textContent = 'تم الحفظ بنجاح!';
+  modalMsg.classList.add('success');
+  setTimeout(() => {
+    overlay.classList.remove('show');
+    loadCards();
+  }, 700);
+});
+
+// ===== تفعيل / إيقاف بطاقة =====
+window.toggleActive = async function(id, currentStatus) {
+  const { error } = await supabaseClient
+    .from('cards')
+    .update({ is_active: !currentStatus })
+    .eq('id', id);
+
+  if (error) {
+    alert('حدث خطأ: ' + error.message);
+    return;
+  }
+  loadCards();
+};
+
+// ===== حذف بطاقة =====
+window.deleteCard = async function(id) {
+  if (!confirm('هل أنت متأكد من حذف هذه البطاقة؟ لا يمكن التراجع عن هذا الإجراء.')) return;
+
+  const { error } = await supabaseClient.from('cards').delete().eq('id', id);
+
+  if (error) {
+    alert('حدث خطأ: ' + error.message);
+    return;
+  }
+  loadCards();
+};
+</script>
+</body>
+</html>
