@@ -238,6 +238,20 @@
   }
   .qr-download { background: #d4af37; color: #000; font-weight: bold; }
   .qr-close { background: #2a2a2a; color: #ccc; }
+
+  /* Slug check */
+  .slug-status {
+    font-size: 12px;
+    margin-top: 6px;
+    min-height: 18px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .slug-status.checking { color: #888; }
+  .slug-status.available { color: #5dd879; }
+  .slug-status.taken { color: #ff5555; }
+  .slug-status.invalid { color: #f0a500; }
 </style>
 </head>
 <body>
@@ -261,6 +275,7 @@
 
       <label>رابط البطاقة (بالإنجليزي وبدون مسافات) *</label>
       <input type="text" id="slug" placeholder="mohamed-ahmed" required pattern="[a-z0-9\-]+">
+      <div class="slug-status" id="slugStatus"></div>
 
       <label>الاسم الكامل *</label>
       <input type="text" id="full_name" required>
@@ -367,6 +382,8 @@ const qrOverlay = document.getElementById('qrOverlay');
 const qrImage = document.getElementById('qrImage');
 const qrLink = document.getElementById('qrLink');
 const qrDownload = document.getElementById('qrDownload');
+const slugInput = document.getElementById('slug');
+const slugStatus = document.getElementById('slugStatus');
 
 // ===== اختيار القالب =====
 function selectTemplate(name) {
@@ -379,6 +396,72 @@ templateGrid.addEventListener('click', (e) => {
   const opt = e.target.closest('.template-option');
   if (opt) selectTemplate(opt.dataset.template);
 });
+
+// ===== فحص الـ slug فوري مع Debounce =====
+let slugTimer = null;
+let slugValid = true; // حالة الـ slug لمنع الحفظ لو محجوز
+
+slugInput.addEventListener('input', () => {
+  clearTimeout(slugTimer);
+  const val = slugInput.value.trim().toLowerCase();
+
+  if (!val) {
+    slugStatus.textContent = '';
+    slugStatus.className = 'slug-status';
+    slugValid = true;
+    return;
+  }
+
+  // تحقق من الصيغة أولاً
+  if (!/^[a-z0-9\-]+$/.test(val)) {
+    slugStatus.textContent = '⚠️ استخدم أحرف إنجليزية صغيرة وأرقام وشرطة (-) فقط';
+    slugStatus.className = 'slug-status invalid';
+    slugValid = false;
+    return;
+  }
+
+  slugStatus.textContent = '⏳ جاري التحقق...';
+  slugStatus.className = 'slug-status checking';
+  slugValid = false;
+
+  slugTimer = setTimeout(() => checkSlugAvailability(val), 500);
+});
+
+async function checkSlugAvailability(val) {
+  const currentId = document.getElementById('cardId').value;
+
+  let query = supabaseClient
+    .from('cards')
+    .select('id')
+    .eq('slug', val);
+
+  // عند التعديل: تجاهل البطاقة الحالية
+  if (currentId) {
+    query = query.neq('id', currentId);
+  }
+
+  const { data, error } = await query.maybeSingle();
+
+  // تحقق إن المستخدم لم يغير القيمة أثناء الانتظار
+  if (slugInput.value.trim().toLowerCase() !== val) return;
+
+  if (error) {
+    slugStatus.textContent = '';
+    slugStatus.className = 'slug-status';
+    slugValid = true;
+    return;
+  }
+
+  if (data) {
+    slugStatus.textContent = '❌ هذا الرابط محجوز، جرب رابطاً آخر';
+    slugStatus.className = 'slug-status taken';
+    slugValid = false;
+  } else {
+    slugStatus.textContent = '✅ الرابط متاح';
+    slugStatus.className = 'slug-status available';
+    slugValid = true;
+  }
+}
 
 // ===== تحقق من تسجيل الدخول =====
 (async () => {
@@ -493,6 +576,13 @@ function resetAvatarUpload() {
   uploadStatus.textContent = '';
 }
 
+function resetSlugStatus() {
+  clearTimeout(slugTimer);
+  slugStatus.textContent = '';
+  slugStatus.className = 'slug-status';
+  slugValid = true;
+}
+
 // ===== عرض QR Code =====
 window.showQr = function(slug) {
   const cardUrl = `${window.location.origin}/u/${encodeURIComponent(slug)}`;
@@ -518,6 +608,7 @@ document.getElementById('addCardBtn').addEventListener('click', () => {
   document.getElementById('cardId').value = '';
   document.getElementById('theme_color').value = '#d4af37';
   resetAvatarUpload();
+  resetSlugStatus();
   selectTemplate('classic');
   modalTitle.textContent = 'إضافة بطاقة جديدة';
   modalMsg.textContent = '';
@@ -554,6 +645,11 @@ window.editCard = function(id) {
   }
   uploadStatus.textContent = '';
 
+  // عند التعديل: الـ slug الحالي متاح بطبيعة الحال
+  resetSlugStatus();
+  slugStatus.textContent = '✅ الرابط الحالي';
+  slugStatus.className = 'slug-status available';
+
   modalTitle.textContent = 'تعديل البطاقة';
   modalMsg.textContent = '';
   modalMsg.className = 'modal-msg';
@@ -571,6 +667,14 @@ overlay.addEventListener('click', (e) => {
 // ===== حفظ (إضافة أو تعديل) =====
 cardForm.addEventListener('submit', async (e) => {
   e.preventDefault();
+
+  // منع الحفظ لو الـ slug محجوز
+  if (!slugValid) {
+    modalMsg.textContent = 'الرابط المختار غير متاح أو يحتوي على أحرف غير صالحة.';
+    modalMsg.className = 'modal-msg error';
+    return;
+  }
+
   const saveBtn = document.getElementById('saveBtn');
   saveBtn.disabled = true;
   saveBtn.textContent = 'جاري الحفظ...';
