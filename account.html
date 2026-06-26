@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>بيانات الحساب - البطاقة الذكية</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #0a0a0a;
+    color: #fff;
+    min-height: 100vh;
+    padding: 20px;
+  }
+  .topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 500px;
+    margin: 0 auto 25px;
+  }
+  .topbar h1 { color: #d4af37; font-size: 20px; }
+  .back-link {
+    background: none;
+    border: 1px solid #444;
+    color: #ccc;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .back-link:hover { border-color: #d4af37; color: #d4af37; }
+
+  .container { max-width: 500px; margin: 0 auto; }
+
+  .section {
+    background: linear-gradient(145deg, #1a1a1a, #242424);
+    border: 1px solid #333;
+    border-radius: 14px;
+    padding: 22px;
+    margin-bottom: 20px;
+  }
+  .section h2 {
+    color: #d4af37;
+    font-size: 16px;
+    margin-bottom: 16px;
+  }
+  .current-email {
+    background: #111;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: #aaa;
+    font-size: 14px;
+    margin-bottom: 18px;
+  }
+  label {
+    display: block;
+    color: #aaa;
+    font-size: 12px;
+    margin-bottom: 5px;
+    margin-top: 12px;
+  }
+  input {
+    width: 100%;
+    background: #111;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: #fff;
+    font-size: 14px;
+    outline: none;
+  }
+  input:focus { border-color: #d4af37; }
+  button.save-btn {
+    width: 100%;
+    background: #d4af37;
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 18px;
+  }
+  button.save-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .msg {
+    font-size: 13px;
+    margin-top: 12px;
+    text-align: center;
+    min-height: 16px;
+    line-height: 1.5;
+  }
+  .msg.error { color: #ff5555; }
+  .msg.success { color: #5dd879; }
+  .loading { text-align: center; color: #888; padding: 40px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>بيانات الحساب</h1>
+  <a class="back-link" href="dashboard.html">← رجوع</a>
+</div>
+
+<div class="container" id="pageContent" style="display:none;">
+
+  <!-- تغيير البريد الإلكتروني -->
+  <div class="section">
+    <h2>البريد الإلكتروني</h2>
+    <div class="current-email" id="currentEmail">...</div>
+
+    <form id="emailForm">
+      <label>البريد الإلكتروني الجديد</label>
+      <input type="email" id="newEmail" required placeholder="example@email.com">
+      <button type="submit" class="save-btn" id="emailBtn">تحديث البريد الإلكتروني</button>
+      <div class="msg" id="emailMsg"></div>
+    </form>
+  </div>
+
+  <!-- تغيير كلمة المرور -->
+  <div class="section">
+    <h2>كلمة المرور</h2>
+    <form id="passwordForm">
+      <label>كلمة المرور الحالية *</label>
+      <input type="password" id="currentPassword" required>
+
+      <label>كلمة المرور الجديدة *</label>
+      <input type="password" id="newPassword" required minlength="6">
+
+      <label>تأكيد كلمة المرور الجديدة *</label>
+      <input type="password" id="confirmPassword" required minlength="6">
+
+      <button type="submit" class="save-btn" id="passwordBtn">تحديث كلمة المرور</button>
+      <div class="msg" id="passwordMsg"></div>
+    </form>
+  </div>
+
+</div>
+
+<div class="loading" id="loadingState">جاري التحميل...</div>
+
+<script src="supabase-config.js"></script>
+<script>
+let currentUser = null;
+
+// ===== تحقق من تسجيل الدخول وعرض البيانات =====
+(async () => {
+  const { data } = await supabaseClient.auth.getSession();
+  if (!data.session) {
+    window.location.href = 'login.html';
+    return;
+  }
+  currentUser = data.session.user;
+  document.getElementById('currentEmail').textContent = currentUser.email;
+  document.getElementById('loadingState').style.display = 'none';
+  document.getElementById('pageContent').style.display = 'block';
+})();
+
+// ===== تحديث البريد الإلكتروني =====
+const emailForm = document.getElementById('emailForm');
+const emailMsg = document.getElementById('emailMsg');
+const emailBtn = document.getElementById('emailBtn');
+
+emailForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  emailMsg.textContent = '';
+  emailMsg.className = 'msg';
+
+  const newEmail = document.getElementById('newEmail').value.trim();
+
+  if (newEmail.toLowerCase() === currentUser.email.toLowerCase()) {
+    emailMsg.textContent = 'هذا هو بريدك الحالي بالفعل.';
+    emailMsg.classList.add('error');
+    return;
+  }
+
+  emailBtn.disabled = true;
+  emailBtn.textContent = 'جاري التحديث...';
+
+  const { error } = await supabaseClient.auth.updateUser({ email: newEmail });
+
+  emailBtn.disabled = false;
+  emailBtn.textContent = 'تحديث البريد الإلكتروني';
+
+  if (error) {
+    emailMsg.textContent = 'خطأ: ' + error.message;
+    emailMsg.classList.add('error');
+    return;
+  }
+
+  emailMsg.textContent = 'تم إرسال رابط تأكيد إلى البريد الجديد. افتح الرابط لتفعيل التغيير.';
+  emailMsg.classList.add('success');
+  emailForm.reset();
+});
+
+// ===== تحديث كلمة المرور =====
+const passwordForm = document.getElementById('passwordForm');
+const passwordMsg = document.getElementById('passwordMsg');
+const passwordBtn = document.getElementById('passwordBtn');
+
+passwordForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  passwordMsg.textContent = '';
+  passwordMsg.className = 'msg';
+
+  const currentPassword = document.getElementById('currentPassword').value;
+  const newPassword = document.getElementById('newPassword').value;
+  const confirmPassword = document.getElementById('confirmPassword').value;
+
+  if (newPassword !== confirmPassword) {
+    passwordMsg.textContent = 'كلمة المرور الجديدة وتأكيدها غير متطابقين.';
+    passwordMsg.classList.add('error');
+    return;
+  }
+
+  if (newPassword.length < 6) {
+    passwordMsg.textContent = 'كلمة المرور يجب أن تكون 6 أحرف على الأقل.';
+    passwordMsg.classList.add('error');
+    return;
+  }
+
+  passwordBtn.disabled = true;
+  passwordBtn.textContent = 'جاري التحقق...';
+
+  // تحقق من كلمة المرور الحالية أولاً عبر إعادة تسجيل الدخول
+  const { error: verifyError } = await supabaseClient.auth.signInWithPassword({
+    email: currentUser.email,
+    password: currentPassword,
+  });
+
+  if (verifyError) {
+    passwordBtn.disabled = false;
+    passwordBtn.textContent = 'تحديث كلمة المرور';
+    passwordMsg.textContent = 'كلمة المرور الحالية غير صحيحة.';
+    passwordMsg.classList.add('error');
+    return;
+  }
+
+  passwordBtn.textContent = 'جاري التحديث...';
+
+  const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
+
+  passwordBtn.disabled = false;
+  passwordBtn.textContent = 'تحديث كلمة المرور';
+
+  if (error) {
+    passwordMsg.textContent = 'خطأ: ' + error.message;
+    passwordMsg.classList.add('error');
+    return;
+  }
+
+  passwordMsg.textContent = 'تم تحديث كلمة المرور بنجاح ✓';
+  passwordMsg.classList.add('success');
+  passwordForm.reset();
+});
+</script>
+</body>
+</html>
