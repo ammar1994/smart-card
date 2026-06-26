@@ -77,6 +77,14 @@
     color: #888;
   }
   .switch a { color: #d4af37; text-decoration: none; }
+  .forgot {
+    text-align: left;
+    margin-top: -10px;
+    margin-bottom: 16px;
+    font-size: 12px;
+  }
+  .forgot a { color: #888; text-decoration: none; }
+  .forgot a:hover { color: #d4af37; }
 </style>
 </head>
 <body>
@@ -88,6 +96,10 @@
 
     <label>كلمة المرور</label>
     <input type="password" id="password" required placeholder="كلمة المرور">
+
+    <div class="forgot">
+      <a href="forgot-password.html">نسيت كلمة المرور؟</a>
+    </div>
 
     <button type="submit" id="submitBtn">دخول</button>
   </form>
@@ -101,7 +113,6 @@ const form = document.getElementById('loginForm');
 const msg = document.getElementById('msg');
 const submitBtn = document.getElementById('submitBtn');
 
-// لو المستخدم مسجل دخول بالفعل، حوّله للداشبورد مباشرة
 (async () => {
   const { data } = await supabaseClient.auth.getSession();
   if (data.session) window.location.href = 'dashboard.html';
