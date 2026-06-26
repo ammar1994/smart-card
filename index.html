@@ -4,51 +4,180 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>البطاقة الذكية</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --gold:       #C9A84C;
+    --gold-light: #E2C46A;
+    --gold-dark:  #8A6A28;
+    --bg:         #0C0C0C;
+    --card:       #141414;
+    --border:     #252525;
+    --text:       #EDEAE4;
+    --muted:      #6B6560;
+  }
+
   body {
-    font-family: 'Segoe UI', sans-serif;
-    background: #0a0a0a;
+    font-family: 'IBM Plex Sans Arabic', 'Segoe UI', sans-serif;
+    background: var(--bg);
     min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 20px;
+    padding: 24px 20px;
+    position: relative;
+    overflow: hidden;
   }
+
+  /* ambient glow */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 70% 45% at 50% -5%, rgba(201,168,76,.15) 0%, transparent 65%),
+      radial-gradient(ellipse 50% 35% at 85% 105%, rgba(201,168,76,.07) 0%, transparent 55%);
+    pointer-events: none;
+  }
+
+  /* ── Card ── */
   .box {
-    background: linear-gradient(145deg, #1a1a1a, #2a2a2a);
-    border: 1px solid #d4af37;
-    border-radius: 20px;
-    padding: 45px 30px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    padding: 48px 32px 40px;
     width: 100%;
     max-width: 400px;
     text-align: center;
-    box-shadow: 0 0 30px rgba(212,175,55,0.2);
+    position: relative;
+    overflow: hidden;
   }
-  .logo { font-size: 50px; margin-bottom: 15px; }
-  h1 { color: #d4af37; font-size: 24px; margin-bottom: 10px; }
-  p { color: #888; font-size: 14px; margin-bottom: 30px; line-height: 1.6; }
+
+  /* top shimmer line */
+  .box::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 15%; right: 15%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+
+  /* ── Logo mark ── */
+  .logo-mark {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 20px;
+    background: #181818;
+    border: 1px solid var(--gold-dark);
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .logo-mark svg {
+    width: 34px;
+    height: 34px;
+  }
+
+  /* ── Text ── */
+  h1 {
+    color: var(--text);
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -.3px;
+    margin-bottom: 4px;
+  }
+
+  .subtitle-en {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--gold);
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    display: block;
+  }
+
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 0 0 22px;
+  }
+
+  p {
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.75;
+    margin-bottom: 32px;
+    font-weight: 400;
+  }
+
+  /* ── Buttons ── */
   a.btn {
     display: block;
     text-decoration: none;
-    padding: 14px;
-    border-radius: 10px;
+    padding: 15px;
+    border-radius: 12px;
     font-size: 15px;
-    font-weight: bold;
-    margin-bottom: 12px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    letter-spacing: .2px;
+    transition: opacity .2s, transform .15s;
   }
-  .primary { background: #d4af37; color: #000; }
-  .secondary { background: transparent; border: 1px solid #444; color: #ccc; }
-  .secondary:hover { border-color: #d4af37; color: #d4af37; }
+
+  .primary {
+    background: linear-gradient(135deg, var(--gold) 0%, #B08A2A 100%);
+    color: #0C0C0C;
+  }
+  .primary:hover { opacity: .9; transform: translateY(-1px); }
+
+  .secondary {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  .secondary:hover {
+    border-color: var(--gold-dark);
+    background: rgba(201,168,76,.04);
+  }
+
+  /* ── Footer ── */
+  .footer-tag {
+    margin-top: 28px;
+    font-size: 10px;
+    color: #2A2A2A;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
 </style>
 </head>
 <body>
 <div class="box">
-  <div class="logo">💳</div>
+
+  <div class="logo-mark">
+    <svg viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="3" y="8" width="28" height="18" rx="3.5" stroke="#C9A84C" stroke-width="1.5"/>
+      <rect x="3" y="13" width="28" height="4.5" fill="#C9A84C" opacity=".2"/>
+      <rect x="6" y="20" width="7" height="2.5" rx="1.2" fill="#C9A84C" opacity=".55"/>
+      <circle cx="24" cy="21.5" r="2.2" stroke="#C9A84C" stroke-width="1.2"/>
+      <circle cx="27.5" cy="21.5" r="2.2" stroke="#C9A84C" stroke-width="1.2" opacity=".45"/>
+    </svg>
+  </div>
+
   <h1>البطاقة الذكية</h1>
+  <span class="subtitle-en">Smart Card</span>
+
+  <div class="divider"></div>
+
   <p>أنشئ بطاقتك الرقمية الشخصية، وشاركها عبر NFC أو رابط مباشر، وعدّلها في أي وقت بدون أي كود.</p>
+
   <a class="btn primary" href="signup.html">إنشاء حساب جديد</a>
   <a class="btn secondary" href="login.html">تسجيل الدخول</a>
+
+  <p class="footer-tag">Smart Card · Professional Profile</p>
 </div>
 </body>
 </html>
