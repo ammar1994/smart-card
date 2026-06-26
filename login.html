@@ -5,97 +5,227 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>تسجيل الدخول - البطاقة الذكية</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --gold:       #C9A84C;
+    --gold-light: #E2C46A;
+    --gold-dark:  #8A6A28;
+    --bg:         #0C0C0C;
+    --card:       #141414;
+    --border:     #252525;
+    --text:       #EDEAE4;
+    --muted:      #6B6560;
+    --input-bg:   #0F0F0F;
+    --radius:     12px;
+  }
+
   body {
-    font-family: 'Segoe UI', sans-serif;
-    background: #0a0a0a;
+    font-family: 'IBM Plex Sans Arabic', 'Segoe UI', sans-serif;
+    background: var(--bg);
     min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 20px;
+    padding: 24px 20px;
+    position: relative;
+    overflow: hidden;
   }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 70% 45% at 50% -5%, rgba(201,168,76,.15) 0%, transparent 65%),
+      radial-gradient(ellipse 50% 35% at 85% 105%, rgba(201,168,76,.07) 0%, transparent 55%);
+    pointer-events: none;
+  }
+
+  /* ── Card ── */
   .box {
-    background: linear-gradient(145deg, #1a1a1a, #2a2a2a);
-    border: 1px solid #d4af37;
-    border-radius: 20px;
-    padding: 40px 30px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    padding: 44px 32px 38px;
     width: 100%;
     max-width: 400px;
-    box-shadow: 0 0 30px rgba(212,175,55,0.2);
+    position: relative;
+    overflow: hidden;
   }
-  h1 {
-    color: #d4af37;
-    font-size: 22px;
+
+  .box::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 15%; right: 15%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+
+  /* ── Header ── */
+  .card-header {
     text-align: center;
-    margin-bottom: 25px;
+    margin-bottom: 30px;
   }
+
+  .logo-mark {
+    width: 52px;
+    height: 52px;
+    margin: 0 auto 16px;
+    background: #181818;
+    border: 1px solid var(--gold-dark);
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .logo-mark svg { width: 28px; height: 28px; }
+
+  h1 {
+    color: var(--text);
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 3px;
+  }
+
+  .card-sub {
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 400;
+  }
+
+  /* ── Divider ── */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 0 0 26px;
+  }
+
+  /* ── Form ── */
   label {
-    color: #ccc;
-    font-size: 13px;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: .5px;
     display: block;
-    margin-bottom: 6px;
+    margin-bottom: 7px;
   }
+
   input {
     width: 100%;
-    background: #111;
-    border: 1px solid #333;
-    border-radius: 10px;
-    padding: 12px 15px;
-    color: #fff;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 13px 15px;
+    color: var(--text);
+    font-family: inherit;
     font-size: 14px;
     margin-bottom: 16px;
     outline: none;
+    transition: border-color .2s, box-shadow .2s;
+    direction: ltr;
+    text-align: right;
   }
-  input:focus { border-color: #d4af37; }
-  button {
-    width: 100%;
-    background: #d4af37;
-    color: #000;
-    border: none;
-    border-radius: 10px;
-    padding: 13px;
-    font-size: 15px;
-    font-weight: bold;
-    cursor: pointer;
-    margin-top: 5px;
+
+  input::placeholder { color: #333; }
+
+  input:focus {
+    border-color: var(--gold-dark);
+    box-shadow: 0 0 0 3px rgba(201,168,76,.07);
   }
-  button:disabled { opacity: 0.6; cursor: not-allowed; }
-  .msg {
-    text-align: center;
-    font-size: 13px;
-    margin-top: 15px;
-    min-height: 18px;
-  }
-  .msg.error { color: #ff5555; }
-  .msg.success { color: #5dd879; }
-  .switch {
-    text-align: center;
-    margin-top: 20px;
-    font-size: 13px;
-    color: #888;
-  }
-  .switch a { color: #d4af37; text-decoration: none; }
+
+  /* ── Forgot ── */
   .forgot {
     text-align: left;
     margin-top: -10px;
-    margin-bottom: 16px;
+    margin-bottom: 22px;
     font-size: 12px;
   }
-  .forgot a { color: #888; text-decoration: none; }
-  .forgot a:hover { color: #d4af37; }
+
+  .forgot a {
+    color: var(--muted);
+    text-decoration: none;
+    transition: color .15s;
+  }
+
+  .forgot a:hover { color: var(--gold); }
+
+  /* ── Button ── */
+  button {
+    width: 100%;
+    background: linear-gradient(135deg, var(--gold) 0%, #B08A2A 100%);
+    color: #0C0C0C;
+    border: none;
+    border-radius: var(--radius);
+    padding: 14px;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 4px;
+    transition: opacity .2s, transform .15s;
+    letter-spacing: .2px;
+  }
+
+  button:hover { opacity: .9; transform: translateY(-1px); }
+  button:active { transform: translateY(0); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  /* ── Messages ── */
+  .msg {
+    text-align: center;
+    font-size: 13px;
+    margin-top: 14px;
+    min-height: 18px;
+    font-weight: 500;
+  }
+  .msg.error   { color: #F06060; }
+  .msg.success { color: #6DD47E; }
+
+  /* ── Switch link ── */
+  .switch {
+    text-align: center;
+    margin-top: 22px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .switch a {
+    color: var(--gold);
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .switch a:hover { color: var(--gold-light); }
 </style>
 </head>
 <body>
 <div class="box">
-  <h1>تسجيل الدخول</h1>
+
+  <div class="card-header">
+    <div class="logo-mark">
+      <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="2" y="6" width="24" height="16" rx="3" stroke="#C9A84C" stroke-width="1.4"/>
+        <rect x="2" y="11" width="24" height="3.5" fill="#C9A84C" opacity=".2"/>
+        <rect x="5" y="17" width="6" height="2" rx="1" fill="#C9A84C" opacity=".55"/>
+        <circle cx="20" cy="18" r="1.8" stroke="#C9A84C" stroke-width="1.1"/>
+        <circle cx="23" cy="18" r="1.8" stroke="#C9A84C" stroke-width="1.1" opacity=".45"/>
+      </svg>
+    </div>
+    <h1>تسجيل الدخول</h1>
+    <span class="card-sub">البطاقة الذكية · Smart Card</span>
+  </div>
+
+  <div class="divider"></div>
+
   <form id="loginForm">
     <label>البريد الإلكتروني</label>
     <input type="email" id="email" required placeholder="example@email.com">
 
     <label>كلمة المرور</label>
-    <input type="password" id="password" required placeholder="كلمة المرور">
+    <input type="password" id="password" required placeholder="••••••••">
 
     <div class="forgot">
       <a href="forgot-password.html">نسيت كلمة المرور؟</a>
@@ -103,8 +233,10 @@
 
     <button type="submit" id="submitBtn">دخول</button>
   </form>
+
   <div class="msg" id="msg"></div>
   <div class="switch">ما عندك حساب؟ <a href="signup.html">إنشاء حساب جديد</a></div>
+
 </div>
 
 <script src="supabase-config.js"></script>
