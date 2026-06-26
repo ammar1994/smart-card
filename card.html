@@ -63,7 +63,17 @@
     border: 1px solid #222;
   }
   .info-item:hover { border-color: var(--theme, #d4af37); }
-  .info-icon { font-size: 20px; margin-left: 10px; }
+  .info-icon {
+    width: 20px;
+    height: 20px;
+    margin-left: 12px;
+    flex-shrink: 0;
+    stroke: #ccc;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
   .info-text { font-size: 14px; color: #ccc; }
   .social {
     display: flex;
@@ -114,13 +124,18 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
-// أيقونات حقيقية (SVG) من مكتبة Simple Icons عبر CDN
+const ICONS = {
+  phone: `<svg class="info-icon" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`,
+  whatsapp: `<svg class="info-icon" viewBox="0 0 24 24" stroke="none" fill="#ccc"><path d="M17.6 6.32A8.86 8.86 0 0 0 12.05 4a8.94 8.94 0 0 0-7.74 13.4L3 21l3.7-1.27a8.93 8.93 0 0 0 5.35 1.74h.04A8.97 8.97 0 0 0 17.6 6.32zM12.06 19.7h-.03a7.4 7.4 0 0 1-4.7-1.62l-.34-.24-2.18.75.74-2.1-.26-.36a7.42 7.42 0 0 1 11.45-9.18 7.32 7.32 0 0 1 2.17 5.24 7.4 7.4 0 0 1-6.85 7.51zm4.06-5.55c-.22-.11-1.31-.65-1.51-.72-.2-.08-.35-.11-.5.11-.15.22-.57.72-.7.87-.13.15-.26.16-.48.05-.22-.1-.93-.34-1.77-1.1a6.6 6.6 0 0 1-1.22-1.51c-.13-.22-.01-.34.1-.45.1-.1.22-.27.34-.4.11-.13.15-.23.22-.38.07-.15.04-.28-.02-.4-.06-.12-.5-1.2-.69-1.64-.18-.43-.37-.37-.5-.38h-.43c-.15 0-.39.06-.6.28-.2.22-.78.77-.78 1.86 0 1.1.8 2.16.91 2.31.11.15 1.55 2.36 3.76 3.21 2.21.85 2.21.57 2.61.53.4-.04 1.31-.53 1.5-1.05.18-.51.18-.94.13-1.04-.05-.1-.2-.16-.43-.27z"/></svg>`,
+  email: `<svg class="info-icon" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><path d="M22 6l-10 7L2 6"/></svg>`,
+  location: `<svg class="info-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 1 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`
+};
+
 const SOCIAL_ICONS = {
   facebook:  'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/facebook.svg',
   instagram: 'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/instagram.svg',
   linkedin:  'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/linkedin.svg',
   twitter:   'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/x.svg',
-  whatsapp:  'https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/whatsapp.svg',
 };
 
 function renderCard(card) {
@@ -138,28 +153,27 @@ function renderCard(card) {
 
   if (card.phone) {
     html += `<a class="info-item" href="tel:${escapeHtml(card.phone)}">
-      <span class="info-icon">📞</span><span class="info-text">${escapeHtml(card.phone)}</span>
+      ${ICONS.phone}<span class="info-text">${escapeHtml(card.phone)}</span>
     </a>`;
   }
   if (card.whatsapp) {
     const wa = card.whatsapp.replace(/[^0-9+]/g, '');
     html += `<a class="info-item" href="https://wa.me/${escapeHtml(wa.replace('+',''))}" target="_blank">
-      <img class="info-icon" style="width:20px;height:20px;filter:invert(1);" src="${SOCIAL_ICONS.whatsapp}" alt="">
-      <span class="info-text">واتساب: ${escapeHtml(card.whatsapp)}</span>
+      ${ICONS.whatsapp}<span class="info-text">واتساب: ${escapeHtml(card.whatsapp)}</span>
     </a>`;
   }
   if (card.email) {
     html += `<a class="info-item" href="mailto:${escapeHtml(card.email)}">
-      <span class="info-icon">📧</span><span class="info-text">${escapeHtml(card.email)}</span>
+      ${ICONS.email}<span class="info-text">${escapeHtml(card.email)}</span>
     </a>`;
   }
   if (card.location) {
-    html += `<a class="info-item" href="#">
-      <span class="info-icon">📍</span><span class="info-text">${escapeHtml(card.location)}</span>
+    const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(card.location)}`;
+    html += `<a class="info-item" href="${mapsUrl}" target="_blank">
+      ${ICONS.location}<span class="info-text">${escapeHtml(card.location)}</span>
     </a>`;
   }
 
-  // روابط السوشيال ميديا - تظهر فقط لو الرابط مكتوب فعليًا
   const socials = [
     { url: card.facebook_url,  icon: SOCIAL_ICONS.facebook },
     { url: card.instagram_url, icon: SOCIAL_ICONS.instagram },
